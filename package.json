@@ -1,0 +1,23 @@
+{
+  "name": "Deep-Learning-On-Tweets",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "start": "node app.js",
+    "dev": "nodemon app.js",
+    "lint": "./node_modules/.bin/eslint controllers ./node_modules/.bin/eslint routes",
+    "lint-fix": "./node_modules/.bin/eslint controllers ./node_modules/.bin/eslint routes --fix"
+  },
+  "dependencies": {
+    "body-parser": "~1.18.2",
+    "cookie-parser": "~1.4.3",
+    "express": "~4.15.5",
+    "twit": "^2.2.9"
+  },
+  "devDependencies": {
+    "eslint": "^4.17.0",
+    "eslint-config-airbnb-base": "^12.1.0",
+    "eslint-plugin-import": "^2.8.0",
+    "nodemon": "^1.11.0"
+  }
+}
