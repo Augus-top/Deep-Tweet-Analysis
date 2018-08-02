@@ -5,6 +5,7 @@ const bodyParser = require('body-parser');
 
 const index = require('./routes/index');
 const tweetAPI = require('./routes/tweetRoute');
+const tweetWatcher = require('./controllers/tweetController');
 
 const app = express();
 const port = process.env.PORT || '3030';
@@ -25,5 +26,7 @@ app.use((req, res) => {
 
 const server = app.listen(port, function () {});
 console.log(`Connected on port ${port}`);
+
+// tweetWatcher.streamQuery('anime', 'Positivo');
 
 module.exports = app;
