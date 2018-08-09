@@ -40,7 +40,7 @@ exports.realizeSearchForCandidates = async () => {
   const terms = [
     { name: 'alckmin' },
     { name: 'bolsonaro' },
-    { name: 'hassad' },
+    { name: 'haddad' },
     { name: 'lula' },
     { name: 'aldo rebelo' },
     { name: 'alvaro dias' },
@@ -110,14 +110,51 @@ exports.realizeSearchForPoliticalTerms = async () => {
     { name: 'petista' },
     { name: 'PSDB' },
     { name: 'PSL' },
+    { name: 'PDT' },
     { name: 'partido esquerda' },
     { name: 'partido direita' },
     { name: 'PSOL' },
     { name: 'PMDB' },
     { name: 'politica' },
     { name: 'socialista' },
-    { name: 'totalitario' },
-    { name: 'temer' }
+    { name: 'temer' },
+    { name: 'totalitario' }
+  ];
+  this.generateSentimentQueries(terms);
+};
+
+// { name: '#love' } -- Tag mais utilizada
+// { name: 'seguranca publica' },
+// { name: 'educacao' },
+// { name: 'meio ambiente' },
+// { name: 'economia' },
+// { name: 'brasil' },
+exports.realizeSearchForExtraTerms = async () => {
+  const terms = [
+    { name: '@jairbolsonaro' },
+    { name: '@meirelles' },
+    { name: '@cirogomes' },
+    { name: '@haddad_fernando' },
+    { name: '@marinasilva' },
+    { name: 'general mourao' },
+    { name: '@guilhermeboulos' },
+    { name: '@geraldoalckmin' },
+    { name: '@manueladavila' },
+    { name: 'fake news' },
+    { name: 'planalto' },
+    { name: '@alvarodias_' },
+    { name: '@manueladavila' },
+    { name: '@micheltemer' },
+    { name: '@lulaoficial' },
+    { name: '#ForaTemer' },
+    { name: '#EuSouLula' },
+    { name: '#LulaNaPrisão' },
+    { name: 'candidatos' },
+    { name: '#EuSouLula' },
+    { name: 'eleicao' },
+    { name: 'corrupcao' },
+    { name: 'corruptos' },
+    { name: 'votar' }
   ];
   this.generateSentimentQueries(terms);
 };
@@ -150,7 +187,7 @@ exports.searchQuery = async (query, sentimentLabel, writter) => {
 
 exports.checkRateLimit = async () => {
   const twitterResponse = await twit.get('application/rate_limit_status');
-  console.log(twitterResponse.data.resources.tweets);
+  console.log(twitterResponse.data.resources.search);
 };
 
 exports.getTweetById = async (ids, fileName, sentimentLabel) => {

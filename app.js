@@ -29,6 +29,7 @@ console.log(`Connected on port ${port}`);
 
 // tweetWatcher.realizeSearchForCandidates();
 // tweetWatcher.realizeSearchForHashtags();
-tweetWatcher.realizeSearchForPoliticalTerms();
-// tweetWatcher.checkRateLimit();
+// tweetWatcher.realizeSearchForPoliticalTerms();
+// tweetWatcher.realizeSearchForExtraTerms();
+tweetWatcher.checkRateLimit();
 module.exports = app;
