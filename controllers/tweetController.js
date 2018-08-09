@@ -23,8 +23,13 @@ const clearTweets = (tweets) => {
   return clearedTweets;
 };
 
+const defineWritter = (writterName) => {
+  const writter = (writterName === 'db') ? dbController : csvController;
+  return writter;
+};
+
 exports.generateSentimentQueries = (terms) => {
-  const tweetWritter = (CURRENT_WRITTER === 'db') ? dbController : csvController;
+  const tweetWritter = defineWritter(CURRENT_WRITTER);
   terms.forEach((term) => {
     this.searchQuery(term.name + ' :)', 'Positivo', tweetWritter);
     this.searchQuery(term.name + ' :(', 'Negativo', tweetWritter);
@@ -72,8 +77,9 @@ exports.realizeSearchForHashtags = async () => {
     { name: '#oportunidade', sentiment: 'Neutro' },
     { name: '#trabalho', sentiment: 'Neutro' }
   ];
+  const writter = defineWritter(CURRENT_WRITTER);
   hashs.forEach((hash) => {
-    this.searchQuery(hash.name, hash.sentiment, CURRENT_WRITTER);
+    this.searchQuery(hash.name, hash.sentiment, writter);
   });
 };
 
@@ -140,6 +146,11 @@ exports.searchQuery = async (query, sentimentLabel, writter) => {
   } catch (err) {
     console.log(err);
   }
+};
+
+exports.checkRateLimit = async () => {
+  const twitterResponse = await twit.get('application/rate_limit_status');
+  console.log(twitterResponse.data.resources.tweets);
 };
 
 exports.getTweetById = async (ids, fileName, sentimentLabel) => {
