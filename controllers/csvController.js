@@ -1,13 +1,11 @@
 const fs = require('fs');
 const csvWriterStream = require('csv-write-stream');
 
-exports.saveTweetsInCSV = async (tweets, csvFileName, sentimentLabel) => {
+exports.saveTweets = async (tweets, query, sentimentLabel) => {
+  const fileName = this.determineFileName(query);
   const csvWriter = csvWriterStream({ sendHeaders: false });
-  csvWriter.pipe(fs.createWriteStream(`./Coleta/${csvFileName}`, { flags: 'a' }));
-  const tweetsToSave = tweets.filter(tweet => !tweet.full_text.startsWith('RT @'));
-  tweetsToSave.forEach((tweet) => {
-    tweet.text = tweet.full_text.replace(/(\r\n\t|\n|\r\t)/gm, ' '); // Newlines
-    tweet.text = tweet.full_text.replace(/\s\s+/g, ' '); // Multiple spaces
+  csvWriter.pipe(fs.createWriteStream(`./Coleta/${fileName}`, { flags: 'a' }));
+  tweets.forEach((tweet) => {
     csvWriter.write({
       id_str: tweet.id_str,
       text: tweet.full_text,
@@ -18,6 +16,10 @@ exports.saveTweetsInCSV = async (tweets, csvFileName, sentimentLabel) => {
   csvWriter.end();
 };
 
+exports.findSinceId = () => {
+  return undefined;
+};
+
 exports.saveStreamInCSV = async (stream, csvFileName, sentimentLabel) => {
   const streamText = (stream.extended_tweet === undefined) ? stream.text : stream.extended_tweet.full_text;
   const tweet = {
@@ -25,7 +27,7 @@ exports.saveStreamInCSV = async (stream, csvFileName, sentimentLabel) => {
     full_text: streamText,
     date: stream.created_at
   };
-  this.saveTweetsInCSV([tweet], csvFileName, sentimentLabel);
+  this.saveTweets([tweet], csvFileName, sentimentLabel);
 };
 
 exports.determineFileName = (query) => {

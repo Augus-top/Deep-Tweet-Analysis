@@ -27,6 +27,6 @@ app.use((req, res) => {
 const server = app.listen(port, function () {});
 console.log(`Connected on port ${port}`);
 
-// tweetWatcher.streamQuery('anime', 'Positivo');
-
+// tweetWatcher.generateSentimentQueries([{ name: 'anime' }]);
+tweetWatcher.realizeSearchForCandidates();
 module.exports = app;
