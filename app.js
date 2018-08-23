@@ -31,5 +31,9 @@ console.log(`Connected on port ${port}`);
 // tweetWatcher.realizeSearchForHashtags();
 // tweetWatcher.realizeSearchForPoliticalTerms();
 // tweetWatcher.realizeSearchForExtraTerms();
-tweetWatcher.checkRateLimit();
+// tweetWatcher.realizeSearchForExtraTerms2();
+// tweetWatcher.collectEmoticonWithNoScope(':)', 'Positivo');
+// tweetWatcher.collectEmoticonWithNoScope(':(', 'Negativo');
+// tweetWatcher.checkRateLimit();
+
 module.exports = app;

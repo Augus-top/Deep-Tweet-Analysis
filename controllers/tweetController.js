@@ -36,12 +36,17 @@ exports.generateSentimentQueries = (terms) => {
   });
 };
 
+exports.collectEmoticonWithNoScope = (emoticon, expectedSentiment) => {
+  const tweetWritter = defineWritter(CURRENT_WRITTER);
+  tweetWritter.changeDatabaseName('coleta_sem_escopo');
+  this.searchQuery(emoticon, expectedSentiment, tweetWritter);
+};
+
 exports.realizeSearchForCandidates = async () => {
   const terms = [
     { name: 'alckmin' },
     { name: 'bolsonaro' },
     { name: 'haddad' },
-    { name: 'lula' },
     { name: 'aldo rebelo' },
     { name: 'alvaro dias' },
     { name: 'ciro' },
@@ -53,11 +58,12 @@ exports.realizeSearchForCandidates = async () => {
     { name: 'levy fidelix' },
     { name: "manuela d'avila" },
     { name: 'lula' },
+    { name: 'daciolo' },
     { name: 'marina silva' },
     { name: 'paulo rabello' },
     { name: 'rodrigo maia' },
     { name: 'vera lucia' },
-    { name: 'candidato a presidente' }
+    { name: 'candidato' }
   ];
   this.generateSentimentQueries(terms);
 };
@@ -118,6 +124,7 @@ exports.realizeSearchForPoliticalTerms = async () => {
     { name: 'politica' },
     { name: 'socialista' },
     { name: 'temer' },
+    { name: 'dilma' },
     { name: 'totalitario' }
   ];
   this.generateSentimentQueries(terms);
@@ -128,6 +135,8 @@ exports.realizeSearchForPoliticalTerms = async () => {
 // { name: 'educacao' },
 // { name: 'meio ambiente' },
 // { name: 'economia' },
+// { name: 'saude' },
+// { name: 'desemprego' },
 // { name: 'brasil' },
 exports.realizeSearchForExtraTerms = async () => {
   const terms = [
@@ -139,7 +148,6 @@ exports.realizeSearchForExtraTerms = async () => {
     { name: 'general mourao' },
     { name: '@guilhermeboulos' },
     { name: '@geraldoalckmin' },
-    { name: '@manueladavila' },
     { name: 'fake news' },
     { name: 'planalto' },
     { name: '@alvarodias_' },
@@ -153,7 +161,24 @@ exports.realizeSearchForExtraTerms = async () => {
     { name: '#EuSouLula' },
     { name: 'eleicao' },
     { name: 'corrupcao' },
-    { name: 'corruptos' },
+    { name: 'corruptos' }
+  ];
+  this.generateSentimentQueries(terms);
+};
+
+exports.realizeSearchForExtraTerms2 = async () => {
+  const terms = [
+    { name: '#DebateBand' },
+    { name: '#DebateRedeTV' },
+    { name: '#DebateComLula' },
+    { name: '#Estoucombolsonaro' },
+    { name: 'Henrique Meirelles' },
+    { name: '#BoulosNaBand' },
+    { name: 'Ciro Gomes' },
+    { name: 'reforma politica' },
+    { name: 'Marina' },
+    { name: 'Alvaro Dias' },
+    { name: '#BolsonaroNaBand' },
     { name: 'votar' }
   ];
   this.generateSentimentQueries(terms);
@@ -188,6 +213,9 @@ exports.searchQuery = async (query, sentimentLabel, writter) => {
 exports.checkRateLimit = async () => {
   const twitterResponse = await twit.get('application/rate_limit_status');
   console.log(twitterResponse.data.resources.search);
+  const reset = Number(twitterResponse.data.resources.search['/search/tweets'].reset);
+  const resetTime = new Date(reset * 1000);
+  console.log(resetTime.toString());
 };
 
 exports.getTweetById = async (ids, fileName, sentimentLabel) => {
