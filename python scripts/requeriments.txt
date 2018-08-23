@@ -1,0 +1,9 @@
+numpy
+scipy
+tensorflow
+tensorflow-gpu
+keras
+tqdm
+gensim
+pandas
+regex
