@@ -7,3 +7,5 @@ tqdm
 gensim
 pandas
 regex
+sklearn
+matplotlib

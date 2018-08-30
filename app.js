@@ -34,6 +34,6 @@ console.log(`Connected on port ${port}`);
 // tweetWatcher.realizeSearchForExtraTerms2();
 // tweetWatcher.collectEmoticonWithNoScope(':)', 'Positivo');
 // tweetWatcher.collectEmoticonWithNoScope(':(', 'Negativo');
-// tweetWatcher.checkRateLimit();
+tweetWatcher.checkRateLimit();
 
 module.exports = app;

@@ -39,6 +39,7 @@ exports.generateSentimentQueries = (terms) => {
 exports.collectEmoticonWithNoScope = (emoticon, expectedSentiment) => {
   const tweetWritter = defineWritter(CURRENT_WRITTER);
   tweetWritter.changeDatabaseName('coleta_sem_escopo');
+  console.log('Started ' + emoticon);
   this.searchQuery(emoticon, expectedSentiment, tweetWritter);
 };
 
@@ -168,18 +169,18 @@ exports.realizeSearchForExtraTerms = async () => {
 
 exports.realizeSearchForExtraTerms2 = async () => {
   const terms = [
-    { name: '#DebateBand' },
-    { name: '#DebateRedeTV' },
-    { name: '#DebateComLula' },
-    { name: '#Estoucombolsonaro' },
-    { name: 'Henrique Meirelles' },
-    { name: '#BoulosNaBand' },
-    { name: 'Ciro Gomes' },
-    { name: 'reforma politica' },
-    { name: 'Marina' },
-    { name: 'Alvaro Dias' },
-    { name: '#BolsonaroNaBand' },
-    { name: 'votar' }
+    // { name: '#DebateBand' },
+    // { name: '#DebateRedeTV' },
+    // { name: '#DebateComLula' },
+    // { name: '#Estoucombolsonaro' },
+    // { name: 'Henrique Meirelles' },
+    // { name: '#BoulosNaBand' },
+    // { name: 'Ciro Gomes' },
+    // { name: 'reforma politica' },
+    // { name: 'Marina' },
+    // { name: 'Alvaro Dias' },
+    { name: '#GeraldoNoJN' },
+    // { name: 'votar' }
   ];
   this.generateSentimentQueries(terms);
 };
@@ -195,9 +196,11 @@ exports.streamQuery = async (query, sentimentLabel, writter) => {
 };
 
 exports.searchQuery = async (query, sentimentLabel, writter) => {
+  // let maxId = await writter.findSinceId(query);
   let maxId;
   try {
     const sinceId = await writter.findSinceId(query);
+    // const sinceId = '';
     do {
       const twitterResponse = await twit.get('search/tweets', { q: query, tweet_mode: 'extended', since_id: sinceId, max_id: maxId, count: QUERY_LIMIT, lang: 'pt' });
       const tweets = twitterResponse.data.statuses;
