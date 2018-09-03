@@ -131,14 +131,6 @@ exports.realizeSearchForPoliticalTerms = async () => {
   this.generateSentimentQueries(terms);
 };
 
-// { name: '#love' } -- Tag mais utilizada
-// { name: 'seguranca publica' },
-// { name: 'educacao' },
-// { name: 'meio ambiente' },
-// { name: 'economia' },
-// { name: 'saude' },
-// { name: 'desemprego' },
-// { name: 'brasil' },
 exports.realizeSearchForExtraTerms = async () => {
   const terms = [
     { name: '@jairbolsonaro' },
@@ -179,7 +171,6 @@ exports.realizeSearchForExtraTerms2 = async () => {
     // { name: 'reforma politica' },
     // { name: 'Marina' },
     // { name: 'Alvaro Dias' },
-    { name: '#GeraldoNoJN' },
     // { name: 'votar' }
   ];
   this.generateSentimentQueries(terms);
