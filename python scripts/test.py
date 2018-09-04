@@ -23,7 +23,7 @@ def loadWordIndex():
         return wi
 
 
-model = load_model('rnn_model.h5')
+model = load_model('Categorical_Simple_LSTN_3_Epoch_20K_No_Scope.h5')
 
 word_index = loadWordIndex()
 # print(word_index['positive_emoticon'])
@@ -35,15 +35,15 @@ test_sequences = tr.transformSequenceToInt(prep_test, word_index)
 test_data = pad_sequences(test_sequences, maxlen=MAX_SEQUENCE_LENGTH, padding="pre", truncating="post")
 y_test = test_df["sentiment"].values
 
-# Y_test = np_utils.to_categorical(y_test, 2)
-# print(Y_test)
-#
-# predictions = model.predict(test_data)
-# print(predictions)
-#
-# rounded = [round(x[0]) for x in predictions]
-#
-# print(rounded)
-#
-# score = model.evaluate(test_data, y_test, verbose=1)
-# print(score)
+Y_test = np_utils.to_categorical(y_test, 2)
+print(Y_test)
+
+predictions = model.predict(test_data)
+print(predictions)
+
+rounded = [round(x[0]) for x in predictions]
+
+print(rounded)
+
+score = model.evaluate(test_data, Y_test, verbose=1)
+print(score)

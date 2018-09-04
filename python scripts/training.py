@@ -17,6 +17,8 @@ import random
 
 epochs = 3
 chance_to_remove_emoticons = 95
+WV_DIM = 300
+MAX_SEQUENCE_LENGTH = 350
 
 re_url = re.compile('((http|https)\:\/\/)?[a-zA-Z0-9\.\/\?\:@\-_=#]+\.([a-zA-Z]){2,6}([a-zA-Z0-9\.\&\/\?\:@\-_=#])*', re.MULTILINE|re.UNICODE)
 re_user = re.compile('@[a-zA-Z0-9_]+')
@@ -71,44 +73,16 @@ def transformSequenceToInt(texts, word_index):
     for text in tqdm(texts):
         seq_int = []
         for word in text:
-            seq_int.append(word_index[word])
+            seq_int.append(word_index.get(word, 0))
         sequence.append(seq_int)
     return sequence
 
 
-if __name__ == "__main__":
-
-    train_df = pd.read_csv('Train.csv', sep=',', encoding='utf-8', error_bad_lines=False)
-    # tweet_values = list(train_df['tweet_text'].fillna("NAN_WORD").values)
-
-    tweet_values = train_df['tweet_text'].values
-    prep_texts = preprocess_texts(tweet_values)
-
-    # total_tweets = preprocess_texts(tweet_values + test_values)
-
-    print("The vocabulary contains {} unique tokens".format(len(vocab_size)))
-    new_model = Word2Vec.load('model.bin')
-    print(new_model)
-    word_vectors = new_model.wv
-    MAX_NB_WORDS = len(word_vectors.vocab)
-    MAX_SEQUENCE_LENGTH = 350
-    word_index = {t[0]: i+1 for i, t in enumerate(vocab_size.most_common(MAX_NB_WORDS))}
-    # print(word_index['positive_emoticon'])
-
-    train_sequences = transformSequenceToInt(prep_texts, word_index)
-    # print(test_sequences)
-    # get(t, 0) for t in total_tweets] for tweet in total_tweets[:len(tweet_values)]]
-    # test_sequences = [[word_index.get(t, 0) for t in total_tweets] for tweet in total_tweets[len(test_values):]]
-    data = pad_sequences(train_sequences, maxlen=MAX_SEQUENCE_LENGTH, padding="pre", truncating="post")
-
-    y = train_df["sentiment"].values
-    print('Shape of data tensor', data.shape)
-    print('Shape of label tensor', y.shape)
-
-    WV_DIM = 300
+def buildEmbeddingLayer(word_vectors, word_index, dimension):
+    MAX_NB_WORDSS = len(word_vectors.vocab)
     nb_words = min(MAX_NB_WORDS, len(word_vectors.vocab))
     # we initialize the matrix with random numbers
-    wv_matrix = (np.random.rand(nb_words, WV_DIM) - 0.5) / 5.0
+    wv_matrix = (np.random.rand(nb_words, dimension) - 0.5) / 5.0
     for word, i in word_index.items():
         if i >= MAX_NB_WORDS:
             continue
@@ -118,18 +92,29 @@ if __name__ == "__main__":
             wv_matrix[i] = embedding_vector
         except:
             pass
-
-    # Save Word_Index
-    with open('word_index.pkl', 'wb') as output:
-        pickle.dump(word_index, output, pickle.HIGHEST_PROTOCOL)
-
-
     wv_layer = Embedding(nb_words,
-                         WV_DIM,
+                         dimension,
                          mask_zero=False,
                          weights=[wv_matrix],
                          input_length=MAX_SEQUENCE_LENGTH,
                          trainable=False)
+    return wv_layer
+
+
+def constructModel(model_name, categorical, wv_layer, train_data, y, number_classes):
+
+    if categorical:
+        loss = 'categorical_crossentropy'
+        y = np_utils.to_categorical(y, number_classes)
+        output_layer_size = number_classes
+    else:
+        loss = 'binary_crossentropy'
+        output_layer_size = 1
+
+    print('Shape of data tensor', data.shape)
+    print('Shape of label tensor', y.shape)
+    print(loss)
+    print(output_layer_size)
 
     # Inputs
     comment_input = Input(shape=(MAX_SEQUENCE_LENGTH,), dtype='int32')
@@ -142,14 +127,46 @@ if __name__ == "__main__":
     # Output
     x = Dropout(0.2)(x)
     x = BatchNormalization()(x)
-    preds = Dense(1, activation='sigmoid')(x)
+    preds = Dense(output_layer_size, activation='sigmoid')(x)
 
     # build the model
     model = Model(inputs=[comment_input], outputs=preds)
-    model.compile(loss='binary_crossentropy',
+    model.compile(loss=loss,
                   optimizer=Adam(lr=0.001, clipnorm=.25, beta_1=0.7, beta_2=0.99),
                   metrics=['accuracy'])
 
     # Train and SaveModel
-    model.fit([data], [y], validation_split=0.1, epochs=epochs, batch_size=256, shuffle=True, verbose=1)
-    model.save('rnn_model.h5')
+    model.fit(data, y, validation_split=0.1, epochs=epochs, batch_size=256, shuffle=True, verbose=1)
+    model.save(model_name)
+
+
+if __name__ == "__main__":
+
+    train_df = pd.read_csv('Train.csv', sep=',', encoding='utf-8', error_bad_lines=False)
+    # tweet_values = list(train_df['tweet_text'].fillna("NAN_WORD").values)
+
+    tweet_values = train_df['tweet_text'].values
+
+    prep_texts = preprocess_texts(tweet_values)
+
+    print("The vocabulary contains {} unique tokens".format(len(vocab_size)))
+    new_model = Word2Vec.load('model.bin')
+    print(new_model)
+    word_vectors = new_model.wv
+    MAX_NB_WORDS = len(word_vectors.vocab)
+    word_index = {t[0]: i+1 for i, t in enumerate(vocab_size.most_common(MAX_NB_WORDS))}
+    # print(word_index['positive_emoticon'])
+
+    train_sequences = transformSequenceToInt(prep_texts, word_index)
+    data = pad_sequences(train_sequences, maxlen=MAX_SEQUENCE_LENGTH, padding="pre", truncating="post")
+
+    y = train_df["sentiment"].values
+    wv_layer = buildEmbeddingLayer(word_vectors, word_index, WV_DIM)
+
+    # Save Word_Index
+    with open('word_index.pkl', 'wb') as output:
+        pickle.dump(word_index, output, pickle.HIGHEST_PROTOCOL)
+
+    constructModel('Categorical_Simple_LSTN_3_Epoch_20K_No_Scope.h5', True, wv_layer, data, y, 2)
+
+

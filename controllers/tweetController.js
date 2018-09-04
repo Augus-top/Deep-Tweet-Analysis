@@ -154,6 +154,7 @@ exports.realizeSearchForExtraTerms = async () => {
     { name: '#EuSouLula' },
     { name: 'eleicao' },
     { name: 'corrupcao' },
+    { name: 'eleitoral' },
     { name: 'corruptos' }
   ];
   this.generateSentimentQueries(terms);
