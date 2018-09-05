@@ -1,4 +1,5 @@
 from nltk.tokenize import WordPunctTokenizer
+from nltk import RSLPStemmer
 from collections import Counter
 from tqdm import tqdm
 from gensim.models import Word2Vec
@@ -20,14 +21,31 @@ chance_to_remove_emoticons = 95
 WV_DIM = 300
 MAX_SEQUENCE_LENGTH = 350
 
+special_tokens = ['user', 'positive_emoticon', 'number', 'time', 'hashtag', 'negative_emoticon', 'exc', 'int', 'url']
 re_url = re.compile('((http|https)\:\/\/)?[a-zA-Z0-9\.\/\?\:@\-_=#]+\.([a-zA-Z]){2,6}([a-zA-Z0-9\.\&\/\?\:@\-_=#])*', re.MULTILINE|re.UNICODE)
 re_user = re.compile('@[a-zA-Z0-9_]+')
 re_hash = re.compile('#[a-zA-Z0-9]+')
 re_time = re.compile('[0-9]+:[0-9]+')
-re_punc = re.compile('[.,;]++')
+re_acceptedChars = re.compile('[^A-Za-z0-9áàâãéèêíïóôõöúçñÁÀÂÃÉÈÍÏÓÔÕÖÚÇÑ_ ]+')
 re_number = re.compile('[0-9]+')
 vocab_size = Counter()
 tokenizer = WordPunctTokenizer()
+stemmer = RSLPStemmer()
+
+def removeRepeatedCharacters(text, repeate_tolerance):
+    current_char = ''
+    repeated_counter = 1
+    new_string = []
+    for c in text:
+        if c == current_char:
+            if repeated_counter < repeate_tolerance:
+                repeated_counter = repeated_counter + 1
+                new_string.append(c)
+        else:
+            new_string.append(c)
+            repeated_counter = 1
+            current_char = c
+    return ''.join(new_string)
 
 def decideIfWillRemoveEmoticon(t):
     if t != 'positive_emoticon' and t!= 'negative_emoticon':
@@ -41,30 +59,58 @@ def clear_emoticons(text):
     return cleared_text
 
 
-def clean_text(text):
+def clear_text(text):
     # print(text)
-    text = re_url.sub('URL', text)
-    text = re_user.sub('USER', text)
-    text = re_hash.sub('HASH', text)
-    text = re_time.sub('TIME', text)
-    text = re_number.sub('NUMBER', text)
-    text = re_punc.sub('', text)
-    text = text.replace(':)', 'POSITIVE_EMOTICON')
-    text = text.replace(':D', 'POSITIVE_EMOTICON')
-    text = text.replace(':P', 'POSITIVE_EMOTICON')
-    text = text.replace(':(', 'NEGATIVE_EMOTICON')
+    text = re_url.sub(' URL ', text)
+    text = re_user.sub(' USER ', text)
+    text = re_hash.sub(' HASH ', text)
+    text = re_time.sub(' TIME ', text)
+    text = re_number.sub(' NUMBER ', text)
+    text = text.replace(':)', ' POSITIVE_EMOTICON ')
+    text = text.replace(':D', ' POSITIVE_EMOTICON ')
+    text = text.replace(':P', ' POSITIVE_EMOTICON ')
+    text = text.replace(':(', ' NEGATIVE_EMOTICON ')
+    text = removeRepeatedCharacters(text, 2)
+    text = text.replace('!', ' EXC ')
+    text = text.replace('?', ' INT ')
+    text = re_acceptedChars.sub('', text)
     text = tokenizer.tokenize(text)
     text = [t.lower() for t in text]
-    text = clear_emoticons(text)
-    vocab_size.update(text)
     return text
 
 
-def preprocess_texts(text_values):
+def is_useful_text(text):
+    found_emoticon = ''
+    special_token_counter = 0
+    for word in text:
+        for token in special_tokens:
+            if (word == token):
+                special_token_counter = special_token_counter + 1;
+        if found_emoticon == '' and (word == 'positive_emoticon' or word == 'negative_emoticon'):
+            found_emoticon = word
+        if (found_emoticon == 'positive_emoticon' and word == 'negative_emoticon') or (found_emoticon == 'negative_emoticon' and word == 'positive_emoticon'):
+            return False
+        if word == 'rt':
+            return False
+    if special_token_counter == len(text):
+        return False
+    return True
+
+def preprocess_texts(text_values, stem_flag, useful_text_flag):
     prepared_texts = []
+    counter = 0
     for text in tqdm(text_values):
-        prep_text = clean_text(text)
+        prep_text = clear_text(text)
+        if useful_text_flag and not  is_useful_text(prep_text):
+            counter = counter + 1
+            continue
+        prep_text = clear_emoticons(prep_text)
+        if stem_flag:
+            prep_text = [stemmer.stem(t) for t in prep_text]
+        vocab_size.update(prep_text)
         prepared_texts.append(prep_text)
+    # print('Removidos ' + str(counter))
+    # print('Restou ' + str(len(prepared_texts)))
     return prepared_texts
 
 
@@ -142,12 +188,12 @@ def constructModel(model_name, categorical, wv_layer, train_data, y, number_clas
 
 if __name__ == "__main__":
 
-    train_df = pd.read_csv('Train.csv', sep=',', encoding='utf-8', error_bad_lines=False)
+    train_df = pd.read_csv('Train.csv', sep=';', encoding='utf-8', error_bad_lines=False)
     # tweet_values = list(train_df['tweet_text'].fillna("NAN_WORD").values)
 
     tweet_values = train_df['tweet_text'].values
 
-    prep_texts = preprocess_texts(tweet_values)
+    prep_texts = preprocess_texts(tweet_values, False, True)
 
     print("The vocabulary contains {} unique tokens".format(len(vocab_size)))
     new_model = Word2Vec.load('model.bin')
