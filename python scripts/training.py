@@ -4,10 +4,12 @@ from collections import Counter
 from tqdm import tqdm
 from gensim.models import Word2Vec
 from keras.preprocessing.sequence import pad_sequences
-from keras.layers import Dense, Input, LSTM, Embedding, Dropout,SpatialDropout1D, Bidirectional
-from keras.models import Model
-from keras.models import load_model
+from keras.layers import Dense, Input, LSTM, Embedding, Dropout, SpatialDropout1D, MaxoutDense, Bidirectional, Embedding, GaussianNoise, Activation
+from keras.models import Model, Sequential
+from keras.constraints import maxnorm
+from kutilities.layers import AttentionWithContext, Attention, MeanOverTime
 from keras.optimizers import Adam
+from keras.regularizers import l2
 from keras.layers.normalization import BatchNormalization
 from keras.utils import np_utils
 import pandas as pd
@@ -17,9 +19,10 @@ import pickle
 import random
 
 epochs = 3
+batch = 50
 chance_to_remove_emoticons = 95
 WV_DIM = 300
-MAX_SEQUENCE_LENGTH = 350
+MAX_SEQUENCE_LENGTH = 50
 
 special_tokens = ['user', 'positive_emoticon', 'number', 'time', 'hashtag', 'negative_emoticon', 'exc', 'int', 'url']
 re_url = re.compile('((http|https)\:\/\/)?[a-zA-Z0-9\.\/\?\:@\-_=#]+\.([a-zA-Z]){2,6}([a-zA-Z0-9\.\&\/\?\:@\-_=#])*', re.MULTILINE|re.UNICODE)
@@ -126,7 +129,6 @@ def transformSequenceToInt(texts, word_index):
 
 
 def buildEmbeddingLayer(word_vectors, word_index, dimension):
-    MAX_NB_WORDSS = len(word_vectors.vocab)
     nb_words = min(MAX_NB_WORDS, len(word_vectors.vocab))
     # we initialize the matrix with random numbers
     wv_matrix = (np.random.rand(nb_words, dimension) - 0.5) / 5.0
@@ -148,7 +150,7 @@ def buildEmbeddingLayer(word_vectors, word_index, dimension):
     return wv_layer
 
 
-def constructModel(model_name, categorical, wv_layer, train_data, y, number_classes):
+def constructSimpleModel(model_name, categorical, wv_layer, train_data, y, number_classes):
 
     if categorical:
         loss = 'categorical_crossentropy'
@@ -158,7 +160,7 @@ def constructModel(model_name, categorical, wv_layer, train_data, y, number_clas
         loss = 'binary_crossentropy'
         output_layer_size = 1
 
-    print('Shape of data tensor', data.shape)
+    # print('Shape of data tensor', train_data.shape)
     print('Shape of label tensor', y.shape)
     print(loss)
     print(output_layer_size)
@@ -183,7 +185,93 @@ def constructModel(model_name, categorical, wv_layer, train_data, y, number_clas
                   metrics=['accuracy'])
 
     # Train and SaveModel
-    model.fit(data, y, validation_split=0.1, epochs=epochs, batch_size=256, shuffle=True, verbose=1)
+    model.fit(train_data, y, validation_split=0.1, epochs=epochs, batch_size=batch, shuffle=True, verbose=1)
+    model.save(model_name)
+
+
+def get_RNN(unit=LSTM, cells=64, bi=False, return_sequences=True, dropout_U=0., l2_reg=0):
+    rnn = unit(cells, return_sequences=return_sequences, dropout=dropout_U, kernel_regularizer=l2(l2_reg))
+    if bi:
+        return Bidirectional(rnn)
+    else:
+        return rnn
+
+def prepareAttentionModel(embeddings, classes, max_length, unit=LSTM, cells=64, layers=1, **kwargs):
+    # parameters
+    bi = kwargs.get("bidirectional", False)
+    noise = kwargs.get("noise", 0.)
+    dropout_words = kwargs.get("dropout_words", 0)
+    dropout_rnn = kwargs.get("dropout_rnn", 0)
+    dropout_rnn_U = kwargs.get("dropout_rnn_U", 0)
+    dropout_attention = kwargs.get("dropout_attention", 0)
+    dropout_final = kwargs.get("dropout_final", 0)
+    attention = kwargs.get("attention", None)
+    final_layer = kwargs.get("final_layer", False)
+    clipnorm = kwargs.get("clipnorm", 1)
+    loss_l2 = kwargs.get("loss_l2", 0.)
+    lr = kwargs.get("lr", 0.001)
+    model = Sequential()
+    model.add(embeddings)
+
+    if noise > 0:
+        model.add(GaussianNoise(noise))
+    if dropout_words > 0:
+        model.add(Dropout(dropout_words))
+
+    for i in range(layers):
+        rs = (layers > 1 and i < layers - 1) or attention
+        model.add(get_RNN(unit, cells, bi, return_sequences=rs,
+                          dropout_U=dropout_rnn_U))
+        if dropout_rnn > 0:
+            model.add(Dropout(dropout_rnn))
+
+    if attention == "memory":
+        model.add(AttentionWithContext())
+        if dropout_attention > 0:
+            model.add(Dropout(dropout_attention))
+    elif attention == "simple":
+        model.add(Attention())
+        if dropout_attention > 0:
+            model.add(Dropout(dropout_attention))
+
+    if final_layer:
+        model.add(MaxoutDense(100, W_constraint=maxnorm(2)))
+        if dropout_final > 0:
+            model.add(Dropout(dropout_final))
+
+    model.add(Dense(classes, activity_regularizer=l2(loss_l2)))
+    model.add(Activation('softmax'))
+
+    model.compile(optimizer=Adam(clipnorm=clipnorm, lr=lr),
+                  loss='categorical_crossentropy', metrics=['accuracy'])
+    return model
+
+
+def constructAttentionModel(model_name, wv_layer, train_data, y, number_classes):
+
+    loss = 'categorical_crossentropy'
+    y = np_utils.to_categorical(y, number_classes)
+    output_layer_size = number_classes
+
+    # print('Shape of data tensor', train_data.shape)
+    print('Shape of label tensor', y.shape)
+    print(loss)
+    print(output_layer_size)
+
+    model = prepareAttentionModel(wv_layer, classes=number_classes, max_length=MAX_SEQUENCE_LENGTH,
+                                   unit=LSTM, layers=2, cells=150,
+                                   bidirectional=True,
+                                   attention="simple",
+                                   noise=0.3,
+                                   final_layer=False,
+                                   dropout_final=0.5,
+                                   dropout_attention=0.5,
+                                   dropout_words=0.3,
+                                   dropout_rnn=0.3,
+                                   dropout_rnn_U=0.3,
+                                   clipnorm=1, lr=0.001, loss_l2=0.0001, )
+    print('construiu')
+    model.fit(train_data, y, validation_split=0.1, epochs=epochs, batch_size=batch, shuffle=True, verbose=1)
     model.save(model_name)
 
 
@@ -205,6 +293,7 @@ if __name__ == "__main__":
 
     train_sequences = transformSequenceToInt(prep_texts, word_index)
     data = pad_sequences(train_sequences, maxlen=MAX_SEQUENCE_LENGTH, padding="pre", truncating="post")
+    # print(data[0])
 
     y = train_df["sentiment"].values
     y = np.delete(y, labels_to_delete)
@@ -215,7 +304,7 @@ if __name__ == "__main__":
     with open('word_index.pkl', 'wb') as output:
         pickle.dump(word_index, output, pickle.HIGHEST_PROTOCOL)
 
-    constructModel('Categorical_Simple_LSTN_3_Epoch_20K_No_Scope.h5', True, wv_layer, data, y, 2)
-    # constructModel('Binary_Simple_LSTN_10_Epoch_20K_No_Scope.h5', False, wv_layer, data, y, 2)
-
-
+    # constructSimpleModel('Categorical_Simple_LSTN_3_Epoch_20K_No_Scope.h5', True, wv_layer, data, y, 2)
+    # constructSimpleModel('Binary_Simple_LSTN_3_Epoch_20K_No_Scope.h5', False, wv_layer, data, y, 2)
+    # constructSimpleModel('Categorical_Simple_LSTN_3_Epoch_20K_No_Scope_50_Batch_50_WORD_Length.h5', True, wv_layer, data, y, 2)
+    constructAttentionModel('Categorical_Attention_LSTN_3_Epoch_20K_No_Scope_50_Batch_50_WORD_Length.h5', wv_layer, data, y, 2)
