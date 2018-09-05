@@ -12,7 +12,7 @@ EMBEDDING_DIMENSION = 300
 
 train_df = pd.read_csv('ColetaSemEscopo.csv', sep=';', encoding='utf-8', error_bad_lines=False)
 test_values = train_df['tweet_text'].values
-prep_texts = tr.preprocess_texts(test_values, False, False)
+prep_texts = tr.preprocess_texts(test_values, False, False, [])
 print(prep_texts)
 
 # train model

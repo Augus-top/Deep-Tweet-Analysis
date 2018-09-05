@@ -96,13 +96,14 @@ def is_useful_text(text):
         return False
     return True
 
-def preprocess_texts(text_values, stem_flag, useful_text_flag):
+def preprocess_texts(text_values, stem_flag, useful_text_flag, labels_to_delete):
     prepared_texts = []
     counter = 0
-    for text in tqdm(text_values):
+    for i, text in enumerate(tqdm(text_values)):
         prep_text = clear_text(text)
         if useful_text_flag and not  is_useful_text(prep_text):
             counter = counter + 1
+            labels_to_delete.append(i)
             continue
         prep_text = clear_emoticons(prep_text)
         if stem_flag:
@@ -192,9 +193,8 @@ if __name__ == "__main__":
     # tweet_values = list(train_df['tweet_text'].fillna("NAN_WORD").values)
 
     tweet_values = train_df['tweet_text'].values
-
-    prep_texts = preprocess_texts(tweet_values, False, True)
-
+    labels_to_delete = []
+    prep_texts = preprocess_texts(tweet_values, False, True, labels_to_delete)
     print("The vocabulary contains {} unique tokens".format(len(vocab_size)))
     new_model = Word2Vec.load('model.bin')
     print(new_model)
@@ -207,6 +207,8 @@ if __name__ == "__main__":
     data = pad_sequences(train_sequences, maxlen=MAX_SEQUENCE_LENGTH, padding="pre", truncating="post")
 
     y = train_df["sentiment"].values
+    y = np.delete(y, labels_to_delete)
+
     wv_layer = buildEmbeddingLayer(word_vectors, word_index, WV_DIM)
 
     # Save Word_Index
@@ -214,5 +216,6 @@ if __name__ == "__main__":
         pickle.dump(word_index, output, pickle.HIGHEST_PROTOCOL)
 
     constructModel('Categorical_Simple_LSTN_3_Epoch_20K_No_Scope.h5', True, wv_layer, data, y, 2)
+    # constructModel('Binary_Simple_LSTN_10_Epoch_20K_No_Scope.h5', False, wv_layer, data, y, 2)
 
 
