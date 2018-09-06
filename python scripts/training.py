@@ -12,13 +12,14 @@ from keras.optimizers import Adam
 from keras.regularizers import l2
 from keras.layers.normalization import BatchNormalization
 from keras.utils import np_utils
+import matplotlib.pyplot as plt
 import pandas as pd
 import regex as re
 import numpy as np
 import pickle
 import random
 
-epochs = 3
+epochs = 10
 batch = 50
 chance_to_remove_emoticons = 95
 WV_DIM = 300
@@ -185,8 +186,9 @@ def constructSimpleModel(model_name, categorical, wv_layer, train_data, y, numbe
                   metrics=['accuracy'])
 
     # Train and SaveModel
-    model.fit(train_data, y, validation_split=0.1, epochs=epochs, batch_size=batch, shuffle=True, verbose=1)
+    hist = model.fit(train_data, y, validation_split=0.1, epochs=epochs, batch_size=batch, shuffle=True, verbose=2)
     model.save(model_name)
+    return hist
 
 
 def get_RNN(unit=LSTM, cells=64, bi=False, return_sequences=True, dropout_U=0., l2_reg=0):
@@ -271,8 +273,9 @@ def constructAttentionModel(model_name, wv_layer, train_data, y, number_classes)
                                    dropout_rnn_U=0.3,
                                    clipnorm=1, lr=0.001, loss_l2=0.0001, )
     print('construiu')
-    model.fit(train_data, y, validation_split=0.1, epochs=epochs, batch_size=batch, shuffle=True, verbose=1)
+    hist = model.fit(train_data, y, validation_split=0.1, epochs=epochs, batch_size=batch, shuffle=True, verbose=2)
     model.save(model_name)
+    return hist
 
 
 if __name__ == "__main__":
@@ -306,5 +309,24 @@ if __name__ == "__main__":
 
     # constructSimpleModel('Categorical_Simple_LSTN_3_Epoch_20K_No_Scope.h5', True, wv_layer, data, y, 2)
     # constructSimpleModel('Binary_Simple_LSTN_3_Epoch_20K_No_Scope.h5', False, wv_layer, data, y, 2)
-    # constructSimpleModel('Categorical_Simple_LSTN_3_Epoch_20K_No_Scope_50_Batch_50_WORD_Length.h5', True, wv_layer, data, y, 2)
-    constructAttentionModel('Categorical_Attention_LSTN_3_Epoch_20K_No_Scope_50_Batch_50_WORD_Length.h5', wv_layer, data, y, 2)
+    history = constructSimpleModel('Categorical_Simple_LSTN_3_Epoch_20K_No_Scope_50_Batch_50_WORD_Length.h5', True, wv_layer, data, y, 2)
+    # history = constructAttentionModel('Categorical_Attention_LSTN_3_Epoch_20K_No_Scope_50_Batch_50_WORD_Length.h5', wv_layer, data, y, 2)
+    # summarize history for accuracy
+    plt.plot(history.history['acc'])
+    plt.plot(history.history['val_acc'])
+    plt.title('model accuracy')
+    plt.ylabel('accuracy')
+    plt.xlabel('epoch')
+    plt.legend(['train', 'train_val'], loc='upper left')
+    plt.show()
+    # summarize history for loss
+    plt.plot(history.history['loss'])
+    plt.plot(history.history['val_loss'])
+    plt.title('model loss')
+    plt.ylabel('loss')
+    plt.xlabel('epoch')
+    plt.legend(['train', 'train_val'], loc='upper left')
+    plt.show()
+    #Save history
+    with open('history.pkl', 'wb') as output:
+        pickle.dump(history.history, output, pickle.HIGHEST_PROTOCOL)
