@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from nltk.tokenize import WordPunctTokenizer
 from nltk import RSLPStemmer
 from collections import Counter
@@ -12,6 +14,7 @@ from keras.optimizers import Adam
 from keras.regularizers import l2
 from keras.layers.normalization import BatchNormalization
 from keras.utils import np_utils
+from keras import backend as K
 import matplotlib.pyplot as plt
 import pandas as pd
 import regex as re
@@ -19,7 +22,14 @@ import numpy as np
 import pickle
 import random
 
-epochs = 10
+# Stop full CPU Use
+# conf = K.tf.ConfigProto(device_count={'CPU': 1},
+#                         intra_op_parallelism_threads=1,
+#                         inter_op_parallelism_threads=1)
+# K.set_session(K.tf.Session(config=conf))
+
+
+epochs = 50
 batch = 50
 chance_to_remove_emoticons = 95
 WV_DIM = 300
@@ -309,8 +319,8 @@ if __name__ == "__main__":
 
     # constructSimpleModel('Categorical_Simple_LSTN_3_Epoch_20K_No_Scope.h5', True, wv_layer, data, y, 2)
     # constructSimpleModel('Binary_Simple_LSTN_3_Epoch_20K_No_Scope.h5', False, wv_layer, data, y, 2)
-    history = constructSimpleModel('Categorical_Simple_LSTN_3_Epoch_20K_No_Scope_50_Batch_50_WORD_Length.h5', True, wv_layer, data, y, 2)
-    # history = constructAttentionModel('Categorical_Attention_LSTN_3_Epoch_20K_No_Scope_50_Batch_50_WORD_Length.h5', wv_layer, data, y, 2)
+    # history = constructSimpleModel('TS2.h5', True, wv_layer, data, y, 2)
+    history = constructAttentionModel('TA1.h5', wv_layer, data, y, 2)
     # summarize history for accuracy
     plt.plot(history.history['acc'])
     plt.plot(history.history['val_acc'])

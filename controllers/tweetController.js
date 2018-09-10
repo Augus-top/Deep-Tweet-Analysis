@@ -28,6 +28,13 @@ const defineWritter = (writterName) => {
   return writter;
 };
 
+exports.collectTweetsFromNewsletters = () => {
+  const newsletters = ['veja', 'g1', 'jornaloglobo', 'folha', 'estadao', 'exame'];
+  const tweetWritter = defineWritter(CURRENT_WRITTER);
+  tweetWritter.changeDatabaseName('coleta_jornal');
+  newsletters.forEach(n => this.searchUser(n, 'Neutro', tweetWritter));
+};
+
 exports.generateSentimentQueries = (terms) => {
   const tweetWritter = defineWritter(CURRENT_WRITTER);
   terms.forEach((term) => {
@@ -172,7 +179,10 @@ exports.realizeSearchForExtraTerms2 = async () => {
     // { name: 'reforma politica' },
     // { name: 'Marina' },
     // { name: 'Alvaro Dias' },
+    { name: '#ForçaBolsonaro' },
+    { name: '#Bolsonaro2018' }
     // { name: 'votar' }
+
   ];
   this.generateSentimentQueries(terms);
 };
@@ -222,3 +232,21 @@ exports.getTweetById = async (ids, fileName, sentimentLabel) => {
   });
 };
 
+exports.searchUser = async (user, sentimentLabel, writter) => {
+  // let maxId = await writter.findSinceId(user);
+  let maxId;
+  try {
+    const sinceId = await writter.findSinceId(user);
+    // let sinceId;
+    console.log('start ' + user);
+    do {
+      const twitterResponse = await twit.get('statuses/user_timeline', { screen_name: user, tweet_mode: 'extended', since_id: sinceId, max_id: maxId, count: QUERY_LIMIT, trim_user: true });
+      const tweets = twitterResponse.data;
+      writter.saveTweets(clearTweets(tweets), user, sentimentLabel);
+      maxId = (tweets.length === QUERY_LIMIT) ? tweets[tweets.length - 1].id_str : 0;
+    } while (maxId !== 0);
+    console.log('end ' + user);
+  } catch (err) {
+    console.log(err);
+  }
+};

@@ -27,13 +27,14 @@ app.use((req, res) => {
 const server = app.listen(port, function () {});
 console.log(`Connected on port ${port}`);
 
-// tweetWatcher.realizeSearchForCandidates();
+tweetWatcher.realizeSearchForCandidates();
 // tweetWatcher.realizeSearchForHashtags();
 // tweetWatcher.realizeSearchForPoliticalTerms();
 // tweetWatcher.realizeSearchForExtraTerms();
 // tweetWatcher.realizeSearchForExtraTerms2();
 // tweetWatcher.collectEmoticonWithNoScope(':)', 'Positivo');
 // tweetWatcher.collectEmoticonWithNoScope(':(', 'Negativo');
+// tweetWatcher.collectTweetsFromNewsletters();
 tweetWatcher.checkRateLimit();
 
 module.exports = app;

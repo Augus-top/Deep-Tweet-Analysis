@@ -1,7 +1,6 @@
 numpy
 scipy
 tensorflow
-tensorflow-gpu
 keras
 tqdm
 gensim
@@ -10,3 +9,4 @@ regex
 sklearn
 matplotlib
 keras-utilities
+nltk
